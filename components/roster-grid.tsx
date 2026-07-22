@@ -6,6 +6,7 @@ import { DayCard } from './day-card'
 interface RosterGridProps {
   weekStart: Date
   roster: Record<string, string[]>
+  globalName: string
   onAddName: (dateKey: string, name: string) => void
   onRemoveName: (dateKey: string, index: number) => void
 }
@@ -14,7 +15,7 @@ function dateKey(date: Date): string {
   return date.toISOString().split('T')[0]
 }
 
-export function RosterGrid({ weekStart, roster, onAddName, onRemoveName }: RosterGridProps) {
+export function RosterGrid({ weekStart, roster, globalName, onAddName, onRemoveName }: RosterGridProps) {
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
 
   return (
@@ -26,6 +27,7 @@ export function RosterGrid({ weekStart, roster, onAddName, onRemoveName }: Roste
             key={key}
             date={day}
             names={roster[key] ?? []}
+            globalName={globalName}
             onAddName={(name) => onAddName(key, name)}
             onRemoveName={(i) => onRemoveName(key, i)}
           />

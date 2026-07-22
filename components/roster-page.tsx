@@ -36,6 +36,7 @@ export function RosterPage() {
   const [weekStart, setWeekStart] = useState<Date>(() => getWeekStart(new Date()))
   const [roster, setRoster] = useState<Roster>({})
   const [mounted, setMounted] = useState(false)
+  const [globalName, setGlobalName] = useState('')
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -94,16 +95,35 @@ export function RosterPage() {
           <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
             <Users size={18} className="text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Team Roster</h1>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">The Control Room Roster</h1>
         </div>
         <p className="text-sm text-muted-foreground ml-11">
-          Click <strong className="text-foreground font-medium">Add name</strong> on any day to sign up.
+          Enter your name below, then click <strong className="text-foreground font-medium">Add me</strong> on any day to sign up.
           {totalThisWeek > 0 && (
             <span className="ml-2 px-2 py-0.5 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
               {totalThisWeek} {totalThisWeek === 1 ? 'entry' : 'entries'} this week
             </span>
           )}
         </p>
+
+        {/* Global name input */}
+        <div className="mt-4 ml-11 flex items-center gap-2 max-w-sm">
+          <label htmlFor="global-name" className="sr-only">Your name</label>
+          <input
+            id="global-name"
+            type="text"
+            value={globalName}
+            onChange={(e) => setGlobalName(e.target.value)}
+            placeholder="Enter your name…"
+            maxLength={40}
+            className="flex-1 text-sm px-3 py-2 rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+          />
+          {globalName.trim() && (
+            <span className="text-xs text-muted-foreground font-medium px-2 py-1.5 rounded-lg bg-secondary">
+              Ready to add
+            </span>
+          )}
+        </div>
       </header>
 
       {/* Week navigation */}
@@ -119,6 +139,7 @@ export function RosterPage() {
       <RosterGrid
         weekStart={weekStart}
         roster={roster}
+        globalName={globalName.trim()}
         onAddName={handleAddName}
         onRemoveName={handleRemoveName}
       />
