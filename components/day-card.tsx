@@ -1,38 +1,24 @@
 'use client'
 
-import { useState } from 'react'
 import { format, isToday, isPast, startOfDay } from 'date-fns'
-import { Plus, X, UserRound } from 'lucide-react'
+import { Plus, X, UserRound, Lock } from 'lucide-react'
 
 interface DayCardProps {
   date: Date
   names: string[]
+  globalName: string
   onAddName: (name: string) => void
   onRemoveName: (index: number) => void
 }
 
-export function DayCard({ date, names, onAddName, onRemoveName }: DayCardProps) {
-  const [inputValue, setInputValue] = useState('')
-  const [isAdding, setIsAdding] = useState(false)
-
+export function DayCard({ date, names, globalName, onAddName, onRemoveName }: DayCardProps) {
   const today = isToday(date)
   const past = isPast(startOfDay(date)) && !today
+  const locked = past
 
-  const handleSubmit = () => {
-    const trimmed = inputValue.trim()
-    if (!trimmed) return
-    onAddName(trimmed)
-    setInputValue('')
-    setIsAdding(false)
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.nativeEvent.isComposing || e.keyCode === 229) return
-    if (e.key === 'Enter') handleSubmit()
-    if (e.key === 'Escape') {
-      setInputValue('')
-      setIsAdding(false)
-    }
+  const handleAdd = () => {
+    if (!globalName || locked) return
+    onAddName(globalName)
   }
 
   return (
@@ -41,8 +27,8 @@ export function DayCard({ date, names, onAddName, onRemoveName }: DayCardProps) 
         flex flex-col rounded-xl border p-4 gap-3 transition-all
         ${today
           ? 'border-[var(--color-today-foreground)]/30 bg-today shadow-sm ring-1 ring-[var(--color-today-foreground)]/20'
-          : past
-          ? 'border-border bg-card opacity-70'
+          : locked
+          ? 'border-border bg-card opacity-55'
           : 'border-border bg-card hover:shadow-sm'
         }
       `}
@@ -66,10 +52,16 @@ export function DayCard({ date, names, onAddName, onRemoveName }: DayCardProps) 
             Today
           </span>
         )}
+        {locked && (
+          <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full bg-secondary text-muted-foreground">
+            <Lock size={9} />
+            Past
+          </span>
+        )}
       </div>
 
       {/* Names list */}
-      <div className="flex flex-col gap-1.5 min-h-[40px]">
+      <div className="flex flex-col gap-1.5 min-h-[40px] flex-1">
         {names.length === 0 && (
           <p className={`text-xs italic ${today ? 'text-[var(--color-today-foreground)]/50' : 'text-muted-foreground'}`}>
             No one signed up yet
@@ -86,72 +78,43 @@ export function DayCard({ date, names, onAddName, onRemoveName }: DayCardProps) 
               }
             `}
           >
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1.5 truncate">
               <UserRound size={13} className="shrink-0 opacity-60" />
-              {name}
+              <span className="truncate">{name}</span>
             </span>
-            <button
-              onClick={() => onRemoveName(i)}
-              aria-label={`Remove ${name}`}
-              className={`
-                opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5
-                hover:bg-red-500/20 hover:text-red-500
-              `}
-            >
-              <X size={13} />
-            </button>
+            {!locked && (
+              <button
+                onClick={() => onRemoveName(i)}
+                aria-label={`Remove ${name}`}
+                className={`
+                  opacity-0 group-hover:opacity-100 transition-opacity rounded p-0.5 shrink-0
+                  hover:bg-red-500/20 hover:text-red-500
+                `}
+              >
+                <X size={13} />
+              </button>
+            )}
           </div>
         ))}
       </div>
 
-      {/* Add name */}
-      {isAdding ? (
-        <div className="flex gap-1.5">
-          <input
-            autoFocus
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Your name…"
-            maxLength={40}
-            className={`
-              flex-1 text-sm px-2.5 py-1.5 rounded-lg border outline-none min-w-0
-              ${today
-                ? 'bg-[var(--color-today-foreground)]/10 border-[var(--color-today-foreground)]/30 text-[var(--color-today-foreground)] placeholder:text-[var(--color-today-foreground)]/40 focus:border-[var(--color-today-foreground)]/60'
-                : 'bg-background border-border text-foreground placeholder:text-muted-foreground focus:border-primary'
-              }
-            `}
-          />
-          <button
-            onClick={handleSubmit}
-            disabled={!inputValue.trim()}
-            aria-label="Add name"
-            className="px-3 py-1.5 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-40 transition-opacity"
-          >
-            Add
-          </button>
-          <button
-            onClick={() => { setIsAdding(false); setInputValue('') }}
-            aria-label="Cancel"
-            className={`px-2.5 py-1.5 rounded-lg text-sm border transition-colors ${today ? 'border-[var(--color-today-foreground)]/30 text-[var(--color-today-foreground)]/70 hover:bg-[var(--color-today-foreground)]/10' : 'border-border text-muted-foreground hover:bg-secondary'}`}
-          >
-            <X size={14} />
-          </button>
-        </div>
-      ) : (
+      {/* Add me button — hidden for past days */}
+      {!locked && (
         <button
-          onClick={() => setIsAdding(true)}
+          onClick={handleAdd}
+          disabled={!globalName}
+          aria-label={globalName ? `Add ${globalName} to ${format(date, 'EEEE')}` : 'Enter your name above first'}
+          title={!globalName ? 'Enter your name at the top first' : undefined}
           className={`
-            flex items-center gap-1.5 text-xs font-medium rounded-lg px-2.5 py-1.5 border border-dashed transition-colors w-full
+            flex items-center justify-center gap-1.5 text-xs font-medium rounded-lg px-2.5 py-2 border border-dashed transition-colors w-full
             ${today
-              ? 'border-[var(--color-today-foreground)]/30 text-[var(--color-today-foreground)]/70 hover:bg-[var(--color-today-foreground)]/10 hover:border-[var(--color-today-foreground)]/50'
-              : 'border-border text-muted-foreground hover:bg-secondary hover:border-primary/40 hover:text-foreground'
+              ? 'border-[var(--color-today-foreground)]/30 text-[var(--color-today-foreground)]/70 hover:bg-[var(--color-today-foreground)]/10 hover:border-[var(--color-today-foreground)]/50 disabled:opacity-40 disabled:cursor-not-allowed'
+              : 'border-border text-muted-foreground hover:bg-secondary hover:border-primary/40 hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed'
             }
           `}
         >
           <Plus size={13} />
-          Add name
+          {globalName ? `Add me` : 'Add me'}
         </button>
       )}
     </div>
