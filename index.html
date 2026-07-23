@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Control Room Roster</title>
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0f1117;
+      --surface:     #1a1d27;
+      --surface2:    #22273a;
+      --border:      #2e3347;
+      --accent:      #3b82f6;
+      --accent-dim:  #1d4ed8;
+      --muted:       #3a3f55;
+      --text:        #e2e8f0;
+      --text-muted:  #6b7280;
+      --today:       #1e3a5f;
+      --today-ring:  #3b82f6;
+      --past:        #12141c;
+      --past-text:   #3a3f55;
+      --danger:      #ef4444;
+      --radius:      10px;
+      --font:        'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    html { background: var(--bg); color: var(--text); font-family: var(--font); }
+
+    body {
+      min-height: 100vh;
+      padding: 0 0 60px;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 24px 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .site-title {
+      font-size: clamp(1.1rem, 3vw, 1.6rem);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .site-title .dot {
+      width: 10px; height: 10px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50%       { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    /* ── Name input row ── */
+    .name-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .name-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+
+    .name-input {
+      flex: 1;
+      min-width: 180px;
+      max-width: 300px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 0.95rem;
+      padding: 8px 12px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .name-input::placeholder { color: var(--text-muted); }
+    .name-input:focus { border-color: var(--accent); }
+
+    .clear-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 7px;
+      padding: 8px 14px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    .clear-btn:hover { background: var(--surface2); color: var(--text); }
+
+    /* ── Week nav ── */
+    .week-nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .nav-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 7px;
+      width: 34px; height: 34px;
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .nav-btn:hover { background: var(--muted); border-color: var(--accent); }
+
+    .week-label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text);
+      min-width: 180px;
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    .week-label .week-range {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 400;
+      display: block;
+    }
+
+    .today-btn {
+      background: transparent;
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      border-radius: 7px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: background 0.15s;
+    }
+    .today-btn:hover { background: rgba(59,130,246,0.15); }
+
+    /* ── Main grid ── */
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 28px 16px 0;
+    }
+
+    .days-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+    }
+
+    @media (max-width: 900px) {
+      .days-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .days-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* ── Day card ── */
+    .day-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 180px;
+      transition: border-color 0.2s;
+      position: relative;
+    }
+
+    .day-card.today {
+      background: var(--today);
+      border-color: var(--today-ring);
+      box-shadow: 0 0 0 1px var(--today-ring), 0 4px 16px rgba(59,130,246,0.2);
+    }
+
+    .day-card.past {
+      background: var(--past);
+      border-color: var(--border);
+      opacity: 0.6;
+    }
+
+    .day-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 4px;
+    }
+
+    .day-name {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+    }
+
+    .day-date {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .today .day-name { color: var(--accent); }
+    .today .day-date { color: #ffffff; }
+    .past  .day-date { color: var(--past-text); }
+
+    .today-badge {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 4px;
+      padding: 2px 6px;
+    }
+
+    /* ── Roster list ── */
+    .roster-list {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .roster-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--surface2);
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 0.85rem;
+      color: var(--text);
+      gap: 6px;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .past .roster-item {
+      background: var(--surface);
+      color: var(--past-text);
+    }
+
+    .remove-name {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.9rem;
+      line-height: 1;
+      padding: 0 2px;
+      border-radius: 3px;
+      transition: color 0.15s;
+      flex-shrink: 0;
+    }
+    .remove-name:hover { color: var(--danger); }
+
+    .empty-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-style: italic;
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    /* ── Add button ── */
+    .add-btn {
+      background: var(--accent);
+      border: none;
+      border-radius: 7px;
+      color: #fff;
+      font-family: var(--font);
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 7px 10px;
+      cursor: pointer;
+      width: 100%;
+      letter-spacing: 0.03em;
+      transition: background 0.15s, transform 0.1s;
+      margin-top: auto;
+    }
+    .add-btn:hover:not(:disabled) { background: var(--accent-dim); }
+    .add-btn:active:not(:disabled) { transform: scale(0.97); }
+    .add-btn:disabled {
+      background: var(--muted);
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: 40px;
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--muted);
+      padding: 0 16px;
+    }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 0.88rem;
+      padding: 10px 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      z-index: 9999;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.25s, transform 0.25s;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div class="site-title">
+      <span class="dot" aria-hidden="true"></span>
+      The Control Room Roster
+    </div>
+    <div class="week-nav">
+      <button class="nav-btn" id="prevWeek" title="Previous week" aria-label="Previous week">&#8592;</button>
+      <div class="week-label">
+        <span id="weekTitle">Loading…</span>
+        <span class="week-range" id="weekRange"></span>
+      </div>
+      <button class="nav-btn" id="nextWeek" title="Next week" aria-label="Next week">&#8594;</button>
+      <button class="today-btn" id="goToday">Today</button>
+    </div>
+  </div>
+
+  <div class="name-row">
+    <span class="name-label">Add Name</span>
+    <input
+      type="text"
+      class="name-input"
+      id="nameInput"
+      placeholder="Enter your name…"
+      maxlength="40"
+      autocomplete="off"
+      aria-label="Enter your name to add to the roster"
+    />
+    <button class="clear-btn" id="clearName">Clear</button>
+  </div>
+</header>
+
+<main>
+  <div class="days-grid" id="daysGrid" role="list" aria-label="Weekly roster"></div>
+  <footer>
+    <p>Data is stored locally in your browser &bull; The Control Room Roster</p>
+  </footer>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  const DAY_NAMES  = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const SHORT_DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const MONTHS     = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  function storageKey(weekMonday) {
+    return 'roster_' + fmt(weekMonday);
+  }
+
+  function fmt(d) {
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+  }
+
+  function pad(n) { return String(n).padStart(2,'0'); }
+
+  /** Return the Monday of the week containing `d` */
+  function getMondayOf(d) {
+    const date = new Date(d);
+    const day  = date.getDay(); // 0=Sun,1=Mon…
+    const diff = (day === 0) ? -6 : 1 - day;
+    date.setDate(date.getDate() + diff);
+    date.setHours(0,0,0,0);
+    return date;
+  }
+
+  function addDays(d, n) {
+    const r = new Date(d);
+    r.setDate(r.getDate() + n);
+    return r;
+  }
+
+  function isToday(d) {
+    const t = new Date();
+    return d.getFullYear() === t.getFullYear() &&
+           d.getMonth()    === t.getMonth()    &&
+           d.getDate()     === t.getDate();
+  }
+
+  function isPast(d) {
+    const today = new Date(); today.setHours(0,0,0,0);
+    return d < today;
+  }
+
+  function fmtDisplay(d) {
+    return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  }
+
+  // ── State ─────────────────────────────────────────────────────────────────
+  let currentMonday = getMondayOf(new Date());
+
+  function loadRoster() {
+    try {
+      return JSON.parse(localStorage.getItem(storageKey(currentMonday))) || {};
+    } catch { return {}; }
+  }
+
+  function saveRoster(data) {
+    localStorage.setItem(storageKey(currentMonday), JSON.stringify(data));
+  }
+
+  // ── Toast ─────────────────────────────────────────────────────────────────
+  let toastTimer;
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+  function render() {
+    const roster  = loadRoster();
+    const grid    = document.getElementById('daysGrid');
+    const sunday  = addDays(currentMonday, 6);
+
+    // Week header
+    document.getElementById('weekTitle').textContent = getWeekTitle();
+    document.getElementById('weekRange').textContent =
+      `${fmtDisplay(currentMonday)} – ${fmtDisplay(sunday)}`;
+
+    grid.innerHTML = '';
+
+    for (let i = 0; i < 7; i++) {
+      const day       = addDays(currentMonday, i);
+      const key       = fmt(day);
+      const names     = (roster[key] || []);
+      const past      = isPast(day);
+      const today     = isToday(day);
+
+      const card = document.createElement('div');
+      card.className = 'day-card' + (today ? ' today' : '') + (past ? ' past' : '');
+      card.setAttribute('role', 'listitem');
+      card.setAttribute('aria-label', `${DAY_NAMES[i]}, ${fmtDisplay(day)}`);
+
+      // Header
+      const hdr = document.createElement('div');
+      hdr.className = 'day-header';
+      hdr.innerHTML = `
+        <div>
+          <div class="day-name">${SHORT_DAYS[i]}</div>
+          <div class="day-date">${day.getDate()}</div>
+        </div>
+        ${today ? '<span class="today-badge">Today</span>' : ''}
+      `;
+      card.appendChild(hdr);
+
+      // Roster list
+      const list = document.createElement('div');
+      list.className = 'roster-list';
+      list.setAttribute('aria-label', `Names for ${DAY_NAMES[i]}`);
+
+      if (names.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'empty-label';
+        empty.textContent = 'No one yet';
+        list.appendChild(empty);
+      } else {
+        names.forEach((name, idx) => {
+          const item = document.createElement('div');
+          item.className = 'roster-item';
+          item.innerHTML = `
+            <span>${escHtml(name)}</span>
+            ${!past ? `<button class="remove-name" title="Remove ${escHtml(name)}" aria-label="Remove ${escHtml(name)}" data-day="${key}" data-idx="${idx}">&#215;</button>` : ''}
+          `;
+          list.appendChild(item);
+        });
+      }
+      card.appendChild(list);
+
+      // Add button
+      if (!past) {
+        const btn = document.createElement('button');
+        btn.className = 'add-btn';
+        btn.textContent = `+ Add to ${SHORT_DAYS[i]}`;
+        btn.setAttribute('aria-label', `Add name to ${DAY_NAMES[i]}`);
+        btn.dataset.day = key;
+        btn.addEventListener('click', () => addName(key, DAY_NAMES[i]));
+        card.appendChild(btn);
+      }
+
+      grid.appendChild(card);
+    }
+
+    // Attach remove handlers
+    grid.querySelectorAll('.remove-name').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const { day, idx } = e.currentTarget.dataset;
+        removeName(day, Number(idx));
+      });
+    });
+  }
+
+  function getWeekTitle() {
+    const today = getMondayOf(new Date());
+    const diff  = Math.round((currentMonday - today) / (7 * 86400000));
+    if (diff === 0)  return 'This Week';
+    if (diff === 1)  return 'Next Week';
+    if (diff === -1) return 'Last Week';
+    if (diff > 1)   return `${diff} Weeks Ahead`;
+    return `${Math.abs(diff)} Weeks Ago`;
+  }
+
+  function escHtml(str) {
+    return str
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&#39;');
+  }
+
+  // ── Actions ───────────────────────────────────────────────────────────────
+  function addName(dayKey, dayLabel) {
+    const input = document.getElementById('nameInput');
+    const name  = input.value.trim();
+    if (!name) {
+      input.focus();
+      showToast('Please enter a name first!');
+      return;
+    }
+    const roster = loadRoster();
+    if (!roster[dayKey]) roster[dayKey] = [];
+
+    // Prevent duplicate on same day
+    if (roster[dayKey].map(n => n.toLowerCase()).includes(name.toLowerCase())) {
+      showToast(`${name} is already on ${dayLabel}!`);
+      return;
+    }
+
+    roster[dayKey].push(name);
+    saveRoster(roster);
+    render();
+    showToast(`${name} added to ${dayLabel}`);
+  }
+
+  function removeName(dayKey, idx) {
+    const roster = loadRoster();
+    if (!roster[dayKey]) return;
+    const removed = roster[dayKey].splice(idx, 1)[0];
+    saveRoster(roster);
+    render();
+    showToast(`${removed} removed`);
+  }
+
+  // ── Navigation ────────────────────────────────────────────────────────────
+  document.getElementById('prevWeek').addEventListener('click', () => {
+    currentMonday = addDays(currentMonday, -7);
+    render();
+  });
+
+  document.getElementById('nextWeek').addEventListener('click', () => {
+    currentMonday = addDays(currentMonday, 7);
+    render();
+  });
+
+  document.getElementById('goToday').addEventListener('click', () => {
+    currentMonday = getMondayOf(new Date());
+    render();
+  });
+
+  // Allow Enter key on name input
+  document.getElementById('nameInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.nativeEvent?.isComposing && e.keyCode !== 229) {
+      // Focus first available add button
+      const first = document.querySelector('.add-btn');
+      if (first) first.click();
+    }
+  });
+
+  document.getElementById('clearName').addEventListener('click', () => {
+    document.getElementById('nameInput').value = '';
+    document.getElementById('nameInput').focus();
+  });
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  render();
+</script>
+</body>
+</html>
