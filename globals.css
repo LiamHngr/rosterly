@@ -1,0 +1,43 @@
+"use server"
+
+import { db } from "@/lib/db"
+import { rosterEntries } from "@/lib/db/schema"
+import { and, eq, inArray } from "drizzle-orm"
+import { revalidatePath } from "next/cache"
+
+export async function getRosterForWeek(dayKeys: string[]) {
+  if (dayKeys.length === 0) return []
+  const rows = await db
+    .select()
+    .from(rosterEntries)
+    .where(inArray(rosterEntries.dayKey, dayKeys))
+  return rows
+}
+
+export async function addNameToDay(dayKey: string, name: string) {
+  const trimmed = name.trim()
+  if (!trimmed) throw new Error("Name cannot be empty")
+
+  // Prevent duplicates (case-insensitive)
+  const existing = await db
+    .select()
+    .from(rosterEntries)
+    .where(eq(rosterEntries.dayKey, dayKey))
+
+  const alreadyExists = existing.some(
+    (r) => r.name.toLowerCase() === trimmed.toLowerCase()
+  )
+  if (alreadyExists) {
+    throw new Error(`${trimmed} is already on this day`)
+  }
+
+  await db.insert(rosterEntries).values({ dayKey, name: trimmed })
+  revalidatePath("/")
+}
+
+export async function removeNameFromDay(id: number, dayKey: string) {
+  await db
+    .delete(rosterEntries)
+    .where(and(eq(rosterEntries.id, id), eq(rosterEntries.dayKey, dayKey)))
+  revalidatePath("/")
+}
